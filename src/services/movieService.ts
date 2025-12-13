@@ -18,22 +18,33 @@ const tmdb = axios.create({
 
 interface SearchMoviesResponse {
   results: Movie[];
+  total_pages: number;
 }
 
-export async function searchMovies(query: string): Promise<Movie[]> {
+export interface SearchMoviesResult {
+  results: Movie[];
+  totalPages: number;
+}
+
+export async function searchMovies(query: string, page: number): Promise<SearchMoviesResult> {
   const trimmed = query.trim();
-  if (!trimmed) return [];
+  if (!trimmed) return { results: [], totalPages: 0 };
+
 
   const { data } = await tmdb.get<SearchMoviesResponse>('/search/movie', {
     params: {
       query: trimmed,
       include_adult: false,
       language: 'en-US',
-      page: 1,
+      page,
     },
   });
 
-  return data.results;
+  return {
+  results: data.results,
+  totalPages: data.total_pages,
+};
+
 }
 
 
