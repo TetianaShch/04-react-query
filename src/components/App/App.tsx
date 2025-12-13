@@ -1,6 +1,6 @@
-// src/components/App/App.tsx
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 
 import css from './App.module.css';
 
@@ -15,16 +15,12 @@ import type { Movie } from '../../types/movie';
 
 export default function App() {
   const [query, setQuery] = useState('');
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const handleSearch = (newQuery: string) => {
     if (newQuery === query) return;
 
     setQuery(newQuery);
-    setMovies([]);       
     setSelectedMovie(null);
   };
 
@@ -32,33 +28,25 @@ export default function App() {
     setSelectedMovie(movie);
   };
 
+  const { data, isLoading, isError, isSuccess } = useQuery<Movie[]>({
+    queryKey: ['movies', query],
+    queryFn: () => searchMovies(query),
+    enabled: query.trim().length > 0,
+  });
+
+  const movies = data ?? [];
+
   useEffect(() => {
-    if (!query) return;
+    const q = query.trim();
+    if (!q) return;
+    if (!isSuccess) return;
 
-    const fetchMovies = async () => {
-      try {
-        setIsLoading(true);
-        setError(false);
-
-        const results = await searchMovies(query);
-
-        if (results.length === 0) {
-          setMovies([]);
-          toast.error('No movies found for your request.');
-          return;
-        }
-
-        setMovies(results);
-      } catch {
-        setError(true);
-        toast.error('There was an error, please try again...');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMovies();
-  }, [query]);
+    if (movies.length === 0) {
+      toast.error('No movies found for your request.', {
+        id: `no-movies-${q}`,
+      });
+    }
+  }, [query, isSuccess, movies.length]);
 
   return (
     <div className={css.app}>
@@ -66,9 +54,9 @@ export default function App() {
 
       {isLoading && <Loader />}
 
-      {!isLoading && error && <ErrorMessage />}
+      {!isLoading && isError && <ErrorMessage />}
 
-      {!isLoading && !error && movies.length > 0 && (
+      {!isLoading && !isError && movies.length > 0 && (
         <MovieGrid movies={movies} onSelect={handleSelectMovie} />
       )}
 
@@ -83,6 +71,10 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
 
 
 
