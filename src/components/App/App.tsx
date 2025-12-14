@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ReactPaginate from 'react-paginate';
 import { Toaster, toast } from 'react-hot-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 import css from './App.module.css';
 
@@ -32,10 +32,11 @@ export default function App() {
     setSelectedMovie(movie);
   };
 
-  const { data, isLoading, isError, isSuccess, isFetching } = useQuery<SearchMoviesResult>({
+  const { data, isLoading, isError, isSuccess } = useQuery<SearchMoviesResult>({
     queryKey: ['movies', query, page],
     queryFn: () => searchMovies(query, page),
     enabled: query.trim().length > 0,
+    placeholderData: keepPreviousData,
   });
 
   const movies = data?.results ?? [];
@@ -55,7 +56,8 @@ export default function App() {
     <div className={css.app}>
       <SearchBar onSubmit={handleSearch} />
 
-      {(isLoading || isFetching) && <Loader />}
+      {isLoading && <Loader />}
+
 
       {!isLoading && isError && <ErrorMessage />}
 
